@@ -14,15 +14,30 @@ interface PropsInterface {
   initialTasks: Task[]
 }
 
-function App({initialTasks}: PropsInterface) {
-  const [tasks, setTasks] = useState(initialTasks)
-  const [filteredTasks, setFilteredTasks] = useState(initialTasks)
-  const [filter, setFilter] = useState("all")
-  const listHeadingRef = useRef<null | HTMLHeadingElement>(null)
+const filterFuncs: {
+  [key: string]: (task: Task) => boolean
+} = {
+  "all": (task: Task) => true,
+  "active": (task: Task) => !task.completed,
+  "completed": (task: Task) => task.completed,
+}
 
-  useEffect(() => {
-    filterTasks(filter)
-  }, [tasks])
+function App({initialTasks}: PropsInterface) {
+  const useCustomState = <T extends unknown>(key: string, initialState: T): [T, (state: T) => void] => {
+    const [state, setState] = useState<T>(
+      localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : initialState
+    )
+
+    useEffect(() => {
+      localStorage.setItem(key, JSON.stringify(state))
+    }, [key, state])
+
+    return [state, setState]
+  }
+
+  const [tasks, setTasks] = useCustomState("tasks", initialTasks)
+  const [filter, setFilter] = useCustomState("filter", "all")
+  const listHeadingRef = useRef<null | HTMLHeadingElement>(null)
 
   function usePrevious(value: any) {
     const ref = useRef<null | any>();
@@ -64,18 +79,6 @@ function App({initialTasks}: PropsInterface) {
     setTasks(updatedTasks)
   }
 
-  const filterTasks = (filter: string) => {
-    let tasksAfterFiltering
-    if (filter === "active") {
-      tasksAfterFiltering = tasks.filter(task => !task.completed)
-    } else if (filter === "completed") {
-      tasksAfterFiltering = tasks.filter(task => task.completed)
-    } else {
-      tasksAfterFiltering = tasks
-    }
-    setFilteredTasks(tasksAfterFiltering)
-  }
-
   return (
     <div className="todoapp stack-large">
       <h1>Todo Base</h1>
@@ -83,19 +86,19 @@ function App({initialTasks}: PropsInterface) {
         onSubmit={addTask}
       />
       <div className="filters btn-group stack-exception">
-        <FilterButton key="all" name="all" isPressed={"all" === filter} filterTasks={() => filterTasks("all")} />
-        <FilterButton key="active" name="active" isPressed={"active" === filter} filterTasks={() => filterTasks("active")} />
-        <FilterButton key="completed" name="completed" isPressed={"completed" === filter} filterTasks={() => filterTasks("completed")} />
+        <FilterButton key="all" name="all" isPressed={"all" === filter} setFilter={() => setFilter("all")} />
+        <FilterButton key="active" name="active" isPressed={"active" === filter} setFilter={() => setFilter("active")} />
+        <FilterButton key="completed" name="completed" isPressed={"completed" === filter} setFilter={() => setFilter("completed")} />
       </div>
       <h2 id="list-heading" tabIndex={-1} ref={listHeadingRef}>
-        {filteredTasks.length} {filteredTasks.length > 1 ? "tasks" : "task"} remaining
+        {tasks.filter(filterFuncs[filter]).length} {tasks.filter(filterFuncs[filter]).length > 1 ? "tasks" : "task"} remaining
       </h2>
       <ul
         role="list"
         className="todo-list stack-large stack-exception"
         aria-labelledby="list-heading"
       >
-        {filteredTasks.map(task => {
+        {tasks.filter(filterFuncs[filter]).map(task => {
           const {id, name, completed} = task
           return (
             <Task
