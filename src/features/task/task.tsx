@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 interface TaskPropsInterface {
   id: string
@@ -12,6 +12,16 @@ interface TaskPropsInterface {
 export const Task = ({id, name, completed, onChange, onClickDelete, onClickSave}: TaskPropsInterface) => {
   const [editable, setEditable] = useState(false)
   const [nameValue, setNameValue] = useState(name)
+  const editFieldRef = useRef<null | HTMLInputElement>(null)
+  const editButtonRef = useRef<null | HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (editable) {
+      editFieldRef.current?.focus()
+    } else {
+      editButtonRef.current?.focus()
+    }
+  }, [editable])
 
   const toggleCheck = () => {
     onChange(id)
@@ -45,6 +55,7 @@ export const Task = ({id, name, completed, onChange, onClickDelete, onClickSave}
     >
       <label htmlFor="name">Name</label>
       <input
+        ref={editFieldRef}
         type="text"
         id="new-todo-input"
         className="input input__lg"
@@ -75,6 +86,7 @@ export const Task = ({id, name, completed, onChange, onClickDelete, onClickSave}
       </div>
       <div className="btn-group">
         <button
+          ref={editButtonRef}
           type="button"
           className="btn"
           onClick={handleClickEdit}
