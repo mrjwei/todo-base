@@ -16,18 +16,8 @@ interface PropsInterface {
 
 function App({initialTasks}: PropsInterface) {
   const [tasks, setTasks] = useState(initialTasks)
+  const [filteredTasks, setFilteredTasks] = useState(initialTasks)
   const [filter, setFilter] = useState("all")
-
-  const FILTER_MAP: {
-    "all": () => boolean
-    [key: string]: (task: Task) => boolean
-  } = {
-    all: () => true,
-    active: (task: Task) => !task.completed,
-    completed: (task: Task) => task.completed,
-  }
-
-  const FILTER_NAMES = Object.keys(FILTER_MAP)
 
   const addTask = (name: string) => {
     const newTask = {
@@ -53,6 +43,18 @@ function App({initialTasks}: PropsInterface) {
     setTasks(updatedTasks)
   }
 
+  const filterTasks = (filter: string) => {
+    let tasksAfterFiltering
+    if (filter === "active") {
+      tasksAfterFiltering = tasks.filter(task => !task.completed)
+    } else if (filter === "completed") {
+      tasksAfterFiltering = tasks.filter(task => task.completed)
+    } else {
+      tasksAfterFiltering = tasks
+    }
+    setFilteredTasks(tasksAfterFiltering)
+  }
+
   return (
     <div className="todoapp stack-large">
       <h1>Todo Base</h1>
@@ -60,21 +62,19 @@ function App({initialTasks}: PropsInterface) {
         onSubmit={addTask}
       />
       <div className="filters btn-group stack-exception">
-        {FILTER_NAMES.map(name => {
-          return (
-            <FilterButton key={name} name={name} isPressed={name === filter} setFilter={setFilter} />
-          )
-        })}
+        <FilterButton key="all" name="all" isPressed={"all" === filter} filterTasks={() => filterTasks("all")} />
+        <FilterButton key="active" name="active" isPressed={"active" === filter} filterTasks={() => filterTasks("active")} />
+        <FilterButton key="completed" name="completed" isPressed={"completed" === filter} filterTasks={() => filterTasks("completed")} />
       </div>
       <h2 id="list-heading">
-        {tasks.length} {tasks.length > 1 ? "tasks" : "task"} remaining
+        {filteredTasks.length} {filteredTasks.length > 1 ? "tasks" : "task"} remaining
       </h2>
       <ul
         role="list"
         className="todo-list stack-large stack-exception"
         aria-labelledby="list-heading"
       >
-        {tasks.filter(FILTER_MAP[filter]).map(task => {
+        {filteredTasks.map(task => {
           const {id, name, completed} = task
           return (
             <Task
